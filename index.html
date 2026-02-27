@@ -344,7 +344,7 @@ async function doGenerate(){
     const res=await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',
       headers:{'Content-Type':'application/json','x-api-key':G.apiKey,'anthropic-version':'2023-06-01'},
-      body:JSON.stringify({model:'claude-opus-4-5',max_tokens:2000,messages:[{role:'user',content:`Generate ${numQ} fun quiz questions about: "${topic}". Return ONLY a raw JSON array, no markdown:\n[{"question":"...?","options":["A","B","C","D"],"correct":0}]\n"correct"=0-based index. Short options. Mix difficulty.`}]})
+      body:JSON.stringify({model:'claude-3-5-sonnet-20240620',max_tokens:2000,messages:[{role:'user',content:`Generate ${numQ} fun quiz questions about: "${topic}". Return ONLY a raw JSON array, no markdown:\n[{"question":"...?","options":["A","B","C","D"],"correct":0}]\n"correct"=0-based index. Short options. Mix difficulty.`}]})
     });
     if(!res.ok){const e=await res.text();throw new Error('API '+res.status+': '+e.slice(0,100));}
     const data=await res.json();
