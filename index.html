@@ -70,7 +70,6 @@ select option{background:var(--card)}
 </head>
 <body>
 
-<!-- HOME -->
 <div class="screen active" id="s-home">
   <div style="margin-top:30px"></div>
   <div class="logo">⚡QuizBlast</div>
@@ -85,7 +84,6 @@ select option{background:var(--card)}
   <p class="cr">© 2025 Hossam Genidy · All rights reserved</p>
 </div>
 
-<!-- API KEY -->
 <div class="screen" id="s-api">
   <div class="logo" style="font-size:2rem;margin:24px 0 8px">🔑 API Key</div>
   <div class="card">
@@ -98,7 +96,6 @@ select option{background:var(--card)}
   <button class="btn btn-x" onclick="goScreen('s-home')">← Back</button>
 </div>
 
-<!-- SETUP -->
 <div class="screen" id="s-setup">
   <div class="logo" style="font-size:2rem;margin:20px 0 8px">🎮 Host Setup</div>
   <div class="card">
@@ -127,7 +124,6 @@ select option{background:var(--card)}
   <button class="btn btn-x" onclick="goScreen('s-home')">← Back</button>
 </div>
 
-<!-- LOBBY -->
 <div class="screen" id="s-lobby">
   <p style="color:var(--muted);margin-top:24px;font-weight:700;text-transform:uppercase;letter-spacing:1px;font-size:.9rem">Share this code!</p>
   <div class="code" id="lcode">----</div>
@@ -139,7 +135,6 @@ select option{background:var(--card)}
   <button class="btn btn-x" onclick="doCancel()">✕ Cancel</button>
 </div>
 
-<!-- JOIN -->
 <div class="screen" id="s-join">
   <div class="logo" style="font-size:2rem;margin:20px 0 8px">🎯 Join Game</div>
   <div class="card">
@@ -150,7 +145,6 @@ select option{background:var(--card)}
   <button class="btn btn-x" onclick="goScreen('s-home')">← Back</button>
 </div>
 
-<!-- WAIT -->
 <div class="screen" id="s-wait">
   <div class="logo" style="font-size:2rem;margin:28px 0 4px">⚡QuizBlast</div>
   <div class="code" id="wcode">----</div>
@@ -163,7 +157,6 @@ select option{background:var(--card)}
   </div>
 </div>
 
-<!-- QUESTION HOST -->
 <div class="screen" id="s-qh">
   <div class="row" style="margin-top:16px">
     <span id="qch" style="color:var(--muted);font-weight:700">Q 1/5</span>
@@ -185,7 +178,6 @@ select option{background:var(--card)}
   </div>
 </div>
 
-<!-- QUESTION PLAYER -->
 <div class="screen" id="s-qp">
   <div class="row" style="margin-top:16px">
     <span id="qcp" style="color:var(--muted);font-weight:700">Q 1/5</span>
@@ -207,7 +199,6 @@ select option{background:var(--card)}
   </div>
 </div>
 
-<!-- RESULTS -->
 <div class="screen" id="s-res">
   <div style="font-family:'Boogaloo',cursive;font-size:1.8rem;color:var(--accent2);text-align:center;margin:20px 0 4px">⏰ Time's Up!</div>
   <div class="funmsg" id="funmsg">🎯</div>
@@ -226,7 +217,6 @@ select option{background:var(--card)}
   <p id="waithost" style="color:var(--muted);font-size:.88rem;text-align:center;display:none">⏳ Waiting for host...</p>
 </div>
 
-<!-- FINAL -->
 <div class="screen" id="s-final">
   <div class="logo">🏆 Final!</div>
   <div class="funmsg" id="finalmsg">🎉</div>
@@ -343,13 +333,27 @@ async function doGenerate(){
     const tl=parseInt($('timelim').value);
     const res=await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',
-      headers:{'Content-Type':'application/json','x-api-key':G.apiKey,'anthropic-version':'2023-06-01'},
-      body:JSON.stringify({model:'claude-3-5-sonnet-20240620',max_tokens:2000,messages:[{role:'user',content:`Generate ${numQ} fun quiz questions about: "${topic}". Return ONLY a raw JSON array, no markdown:\n[{"question":"...?","options":["A","B","C","D"],"correct":0}]\n"correct"=0-based index. Short options. Mix difficulty.`}]})
+      headers:{
+        'Content-Type':'application/json',
+        'x-api-key':G.apiKey,
+        'anthropic-version':'2023-06-01',
+        'dangerouslyAllowBrowser': 'true'
+      },
+      body:JSON.stringify({
+        model:'claude-3-5-sonnet-20240620',
+        max_tokens:2000,
+        messages:[{role:'user',content:`Generate ${numQ} fun quiz questions about: "${topic}". Return ONLY a raw JSON array, no markdown:\n[{"question":"...?","options":["A","B","C","D"],"correct":0}]\n"correct"=0-based index. Short options. Mix difficulty.`}]})
     });
     if(!res.ok){const e=await res.text();throw new Error('API '+res.status+': '+e.slice(0,100));}
     const data=await res.json();
     if(data.error)throw new Error(data.error.message);
-    const qs=JSON.parse(data.content.map(c=>c.text||'').join('').replace(/```json|```/g,'').trim());
+    
+    // Improved JSON extraction
+    const rawContent = data.content.map(c => c.text || '').join('');
+    const jsonMatch = rawContent.match(/\[[\s\S]*\]/);
+    if(!jsonMatch) throw new Error("Format error");
+    const qs = JSON.parse(jsonMatch[0]);
+
     const code=Array.from({length:4},()=>'ABCDEFGHJKLMNPQRSTUVWXYZ'[Math.floor(Math.random()*23)]).join('');
     G.code=code;G.questions=qs;G.numQ=numQ;G.timeLimit=tl;G.currentQ=0;G.scores={[G.name]:0};
     DB.set('session_'+code,{host:G.name,phase:'lobby',questions:qs,currentQ:0,timeLimit:tl,totalQ:numQ,players:{[G.name]:0},createdAt:Date.now()});
